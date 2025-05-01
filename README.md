@@ -1,10 +1,10 @@
 # quantum-similation
 
-Simulate Quantum Network Using Net-Squid
+Simulate Quantum Network verification protocols Using Net-Squid
 
 # Goal
 
-Try to implement a transport layer protocol for quantum network using NetSquid.
+Compare two entanglement varification protocols
 
 # Protocol Overview
 
@@ -16,6 +16,7 @@ Generate entanglement between two nodes. `entangle.py` is the implementation of 
 
 The protocol is as follows:
 
+0. Setup network structure.
 1. Each node will constantly generate entanglement pairs until the specified number of pairs is reached.
 2. For each pair of entanglement, the protocol will send the **memory position** and **initial fidelity** to the
    Purification protocol via `self.send_signal()`.
@@ -47,7 +48,7 @@ The protocol is as follows:
 
 ## Verification
 
-Need implementation
+Once the Entanglement pairs are generated, we will run two varification protocols to test the fidelity of them. 
 
 ## Transportation
 
@@ -59,5 +60,7 @@ Need implementation
     - [x] Implement preparation between two nodes
     - [x] Implement purification between two nodes
     - [x] Implement verification between two nodes
+      - [x] Implement CHSH verification between two nodes
+      - [x] Implement GHZ verification between two nodes
     - [ ] Implement entanglement swapping between two nodes
-        - [x] Implement Teleportation between two nodes
+        - [ ] Implement Teleportation between two nodes
