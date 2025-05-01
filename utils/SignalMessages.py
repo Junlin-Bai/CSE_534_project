@@ -447,3 +447,29 @@ class CHSHFinalResultSignalMessage:
     """
     def __init__(self, s_value):
         self.s_value = s_value
+
+class GHZStartMeasurementSignalMessage:
+    """
+    GHZ start measurement signal message for Bob
+    """
+
+    def __init__(self, mem_pos):
+        self.mem_pos = mem_pos
+        self.timestamp = ns.sim_time()
+
+
+class GHZMeasurementResultSignalMessage:
+    """
+    GHZ Measurement results for Alice
+
+    """
+    def __init__(self, measurement_results):
+        self.measurement_results = measurement_results
+        self.timestamp = ns.sim_time()
+
+class GHZFinalResultSignalMessage:
+    """
+    GHZ Final results for S value
+    """
+    def __init__(self, s_value):
+        self.s_value = s_value

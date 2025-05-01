@@ -72,6 +72,14 @@ class MessageType(Enum):
     # For outcome exchange
     CHSH_FINAL_RESULTS = auto()
     CHSH_FINISHED = auto()
+    # GHZ verification
+    GHZ_BASIS_ANNOUNCEMENT = auto()
+    GHZ_MEASUREMENT_REQUEST = auto()
+    # For basis choice coordination
+    GHZ_MEASUREMENT_RESULT = auto()
+    # For outcome exchange
+    GHZ_FINAL_RESULTS = auto()
+    GHZ_FINISHED = auto()
 
 class MessageHandler(NodeProtocol):
     """
