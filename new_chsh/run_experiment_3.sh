@@ -7,7 +7,7 @@
 
 # Base parameters
 TOTAL_PAIR=10000
-RUNS=200
+RUNS=1
 SAMPLE_RATE=0.3           # Placeholder: update based on experiment 1 results
 DISTANCE=1                # Fixed distance = 1km
 ALPHA=0.1

@@ -11,7 +11,7 @@
 
 # Base parameters
 TOTAL_PAIR=10000
-RUNS=200
+RUNS=1
 CHANNEL_RATE=8000
 ALPHA=0.1
 SAVE_DIR="./results/sample_rate_change_with_distance_${ALPHA}_${TOTAL_PAIR}"
