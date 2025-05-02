@@ -25,6 +25,7 @@ from protocols.GenEntanglementConcurrent import GenEntanglementConcurrent
 from protocols.MessageHandler import MessageHandler, MessageType
 from protocols.EntanglementHandlerConcurrent import EntanglementHandlerConcurrent
 from protocols.CHSH import  CHSHProtocol
+from protocols.GHZ import GHZProtocol
 from utils.ClassicalMessages import ClassicalMessage
 import pydynaa as pd
 
@@ -126,6 +127,13 @@ class ExampleCHSH(LocalProtocol):
             a_setting.append(op_a)
             b_setting.append(op_b)
 
+        length = len(settings_list)
+        ghz_list = random.choices([("A0", "B0"), ("A1", "B1")], k=length)
+        a_ghz, b_ghz = [], []
+        for (opghz_a, opghz_b) in ghz_list:
+            a_ghz.append(opghz_a)
+            b_ghz.append(opghz_b)
+
         chsh_a = CHSHProtocol(
             node=network_nodes[0],
             entangle_node=network_nodes[1].name,
@@ -140,6 +148,20 @@ class ExampleCHSH(LocalProtocol):
             logger=self.logger
         )
         self.add_subprotocol(chsh_a)
+        ghz_a = GHZProtocol(
+            node=network_nodes[0],
+            entangle_node=network_nodes[1].name,
+            name=f"ghz_{network_nodes[0].name}->{network_nodes[1].name}",
+            total_pairs=self.max_entangle_pairs,
+            qubit_ready_protocols=ehA,
+            setting_list=a_ghz,
+            cc_message_handler=self.subprotocols[f"message_handler_{network_nodes[0].name}"],
+            sample_size_rate=sample_size_rate,
+            alpha=alpah,
+            delta=delta,
+            logger=self.logger
+        )
+        self.add_subprotocol(ghz_a)
         # Link the generation protocol with its corresponding entanglement handler.
         genA.entanglement_handler = ehA
 
@@ -187,6 +209,20 @@ class ExampleCHSH(LocalProtocol):
             logger=self.logger
         )
         self.add_subprotocol(chsh_b)
+        ghz_b = GHZProtocol(
+            node=network_nodes[1],
+            entangle_node=network_nodes[0].name,
+            name=f"ghz_{network_nodes[1].name}->{network_nodes[0].name}",
+            total_pairs=self.max_entangle_pairs,
+            qubit_ready_protocols=ehB,
+            setting_list=b_ghz,
+            cc_message_handler=self.subprotocols[f"message_handler_{network_nodes[1].name}"],
+            sample_size_rate=sample_size_rate,
+            alpha=alpah,
+            delta=delta,
+            logger=self.logger
+        )
+        self.add_subprotocol(ghz_b)
 
         genB.entanglement_handler = ehB
 
@@ -204,16 +240,23 @@ class ExampleCHSH(LocalProtocol):
             start_t = ns.sim_time()  # Record the simulation start time.
 
             # Wait until both entanglement handler subprotocols signal completion.
-            p = self.subprotocols[f"chsh_{self.all_nodes[0].name}->{self.all_nodes[1].name}"]
-            yield self.await_signal(p, MessageType.CHSH_FINISHED)
+            p1 = self.subprotocols[f"chsh_{self.all_nodes[0].name}->{self.all_nodes[1].name}"]
+            yield self.await_signal(p1, MessageType.CHSH_FINISHED)
+
+            p2 = self.subprotocols[f"ghz_{self.all_nodes[0].name}->{self.all_nodes[1].name}"]
+            yield self.await_signal(p2, MessageType.GHZ_FINISHED)
 
             end_t = ns.sim_time()  # Record the simulation end time.
             duration = end_t - start_t
             # self.logger.info(f"Entanglement complete in {duration} ns. Gathering results...", color="purple")
             print(f"Entanglement complete in {duration} ns. Gathering results...")
             # Retrieve the results from each entanglement handler; each result is a dictionary mapping memory positions to fidelities.
-            results = p.get_signal_result(MessageType.CHSH_FINISHED)
+            results = p1.get_signal_result(MessageType.CHSH_FINISHED)
             print(f"Total Unused pair: {len(results['entangled_pairs'])}")
+            results_ghz = p2.get_signal_result(MessageType.GHZ_FINISHED)
+            print(f"Total Unused pair: {len(results_ghz['entangled_pairs'])}")
+
+            p_ghz = results_ghz["s_value"]
 
             mem_poses = results['entangled_pairs'].keys()
             all_fids = []
@@ -243,6 +286,7 @@ class ExampleCHSH(LocalProtocol):
                 all_tel_fids.append(tel_fid)
             return_data = {
                 "s_value": results["s_value"],
+                "p_ghz": p_ghz,
                 "theta": results["theta"],
                 "actual_fid": all_fids,
                 "teleport_fid": all_tel_fids,
@@ -289,6 +333,7 @@ class ExampleCHSH(LocalProtocol):
         fidelity = qapi.fidelity(qubit_b, ns.y0)
 
         return fidelity
+
 def example_sim_run(nodes, num_runs,
                     memory_depolar_rate,
                     node_distance,
