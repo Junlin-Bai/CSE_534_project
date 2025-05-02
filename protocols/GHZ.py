@@ -321,7 +321,7 @@ class GHZProtocol(NodeProtocol):
             0 if the measurement outcome is 0,
             1 if the measurement outcome is 1.
         """
-        outcome, _ = qapi.measure(qubit, observable=X)
+        outcome, _ = qapi.measure(qubit, observable=Y)
         return 0 if outcome == 0 else 1
 
     @staticmethod
@@ -338,7 +338,7 @@ class GHZProtocol(NodeProtocol):
             0 if the measurement outcome is 0,
             1 if the measurement outcome is 1.
         """
-        outcome, _ = qapi.measure(qubit, observable=Y)
+        outcome, _ = qapi.measure(qubit, observable=X)
         return 0 if outcome == 0 else 1
 
     @staticmethod

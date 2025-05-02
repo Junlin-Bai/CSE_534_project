@@ -2,6 +2,7 @@ import argparse
 import os
 import operator
 import sys
+import random
 import json
 from functools import reduce
 import numpy as np
@@ -113,7 +114,7 @@ class ExampleCHSH(LocalProtocol):
         """
         # generate settings for a and b
         N_each =int( self.max_entangle_pairs * sample_size_rate // 4)  # Integer division ensures equal distribution.
-        import random
+
         settings_list = (
                 [("A0", "B0")] * N_each +
                 [("A1", "B0")] * N_each +
