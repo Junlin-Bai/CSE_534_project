@@ -12,11 +12,11 @@ Compare two entanglement varification protocols
 
 ## GenEntanglement
 
-Generate entanglement between two nodes. `entangle.py` is the implementation of this protocol.
+Generate entanglement between two nodes. `GenEntanglementCocurrent.py` is the implementation of this protocol.
 
 The protocol is as follows:
 
-0. Setup network structure.
+0. Setup network structure (set up in experiment module).
 1. Each node will constantly generate entanglement pairs until the specified number of pairs is reached.
 2. For each pair of entanglement, the protocol will send the **memory position** and **initial fidelity** to the
    Purification protocol via `self.send_signal()`.
@@ -24,43 +24,18 @@ The protocol is as follows:
    generating new entanglement pairs.
 4. The protocol will then generate new entanglement based on the memory position sent by purification protocol.
 
-## SwapEntanglement
-
-
-## Purification
-
-Purify entanglement between two nodes. `purify.py` is the implementation of this protocol.
-
-The protocol is as follows:
-
-1. The protocol will wait for the GenEntanglement protocol to generate entanglement pairs.
-2. Once the entanglement pairs are received, the protocol will record the memory position, calculate the fidelity of the
-   entanglement pairs.
-3. The protocol will then start purifying the entanglement pairs if at least two entanglement pairs are received and the
-   fidelity is below the threshold.
-4. The protocol will communicate with entangle node to perform the purification process.
-5. Once the purification process is done, the protocol will send a signal to the GenEntanglement protocol to generate
-   new entanglement pairs. As each purification process will destroy one entanglement pair.
-6. The protocol will then wait for the GenEntanglement protocol to send new entanglement pairs and starts from Step 1.
-   This process will repeat
-   until the specified number of entanglement pairs is reached with the desired fidelity.
-7. Finally, the protocol will send a signal to the Verification protocol to start the verification process (TODO).
-
 ## Verification
 
-Once the Entanglement pairs are generated, we will run two varification protocols to test the fidelity of them. 
+Once the Entanglement pairs are generated, we will run two varification protocols CHSH.py and GHZ.py to test 
+the fidelity of them. 
 
-## Transportation
-
-Need implementation
 
 ## TODO
 
 - [ ] Implement two node connection
     - [x] Implement preparation between two nodes
-    - [x] Implement purification between two nodes
     - [x] Implement verification between two nodes
       - [x] Implement CHSH verification between two nodes
       - [x] Implement GHZ verification between two nodes
     - [ ] Implement entanglement swapping between two nodes
-        - [ ] Implement Teleportation between two nodes
+        - [x] Implement Teleportation between two nodes
