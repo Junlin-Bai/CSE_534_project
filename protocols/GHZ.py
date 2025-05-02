@@ -214,11 +214,13 @@ class GHZProtocol(NodeProtocol):
             if setting == "A0":
                 outcome_a = self.measure_in_A_0_basis(qubit)
                 self.measure_result.append(("A0", outcome_a))
-                outcome_b = self.measure_in_B_0_basis(qubit)
-                self.measure_result.append(("B0", outcome_b))
             elif setting == "A1":
                 outcome_a = self.measure_in_A_1_basis(qubit)
                 self.measure_result.append(("A1", outcome_a))
+            elif setting == "B0":
+                outcome_b = self.measure_in_B_0_basis(qubit)
+                self.measure_result.append(("B0", outcome_b))
+            elif setting == "B1":
                 outcome_b = self.measure_in_B_1_basis(qubit)
                 self.measure_result.append(("B1", outcome_b))
 
@@ -310,9 +312,9 @@ class GHZProtocol(NodeProtocol):
     @staticmethod
     def measure_in_A_1_basis(qubit):
         """
-        Measure a qubit in Bob's B1 basis using a custom observable (x as observable).
-        x as observable
-        Measure a qubit in the X basis.
+        Measure a qubit in Bob's B1 basis using a custom observable (y as observable).
+        y as observable
+        Measure a qubit in the Y basis.
 
         Parameters:
             qubit: The identifier or reference of the qubit.
@@ -327,9 +329,9 @@ class GHZProtocol(NodeProtocol):
     @staticmethod
     def measure_in_B_0_basis(qubit):
         """
-        Measure a qubit in Bob's B1 basis using a custom observable (y as observable).
-        y as observable
-        Measure a qubit in the Y basis.
+        Measure a qubit in Bob's B1 basis using a custom observable (x as observable).
+        x as observable
+        Measure a qubit in the X basis.
 
         Parameters:
             qubit: The identifier or reference of the qubit.
