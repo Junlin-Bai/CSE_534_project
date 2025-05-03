@@ -30,7 +30,7 @@ run_simulation() {
 }
 
 # Run simulations concurrently for distances from 0.5 km to 3 km
-for distance in 0.5 1 1.5 2 2.5 3; do
+for distance in 0.5 1 1.5 2 2.5 3 3.5 4; do
     run_simulation $distance &
 done
 
