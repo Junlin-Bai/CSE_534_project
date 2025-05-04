@@ -6,12 +6,12 @@
 #   Varying parameter: channel depolar rate from 1000 Hz to 16000 Hz
 
 # Base parameters
-TOTAL_PAIR=10000
+TOTAL_PAIR=60000
 RUNS=1
-SAMPLE_RATE=0.3           # Placeholder: update based on experiment 1 results
+SAMPLE_RATE=0.5           # Placeholder: update based on experiment 1 results
 DISTANCE=1                # Fixed distance = 1km
 ALPHA=0.1
-SAVE_DIR="./results/change_channel_rate_result_${ALPHA}_${TOTAL_PAIR}"
+SAVE_DIR="./results/change_channel_rate_result_${ALPHA}_${TOTAL_PAIR}_chsh"
 
 # Function to run the simulation with a specific channel depolar rate
 run_simulation() {

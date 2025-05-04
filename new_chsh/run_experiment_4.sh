@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to run sim_chsh.py with different distances concurrently
+# Script to run sim_ghz.py with different distances concurrently
 # Experiment 4:
 #   Fixed parameters: C=10,000, channel depolar rate = 8xxxHz, alpha 0.05,
 #   sample rate increasing based on distance (computed linearly from 0.1 to 0.7),

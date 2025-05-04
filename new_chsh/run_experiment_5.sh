@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to run sim_chsh.py with different alpha values concurrently
+# Script to run sim_ghz.py with different alpha values concurrently
 # Experiment 5:
 #   Fixed parameters: C=10,000, channel depolar rate = 8xxxHz, distance = 1km, sample_rate = TBD (from experiment 1)
 #   Varying parameter: alpha from 0.20 to 0.05

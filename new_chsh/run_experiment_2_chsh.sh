@@ -7,12 +7,12 @@
 #   Varying parameter: distance from 0.5 km to 4 km
 
 # Base parameters
-TOTAL_PAIR=10000
+TOTAL_PAIR=60000
 RUNS=1
 CHANNEL_RATE=8000
-SAMPLE_RATE=0.3        # Placeholder: update based on experiment 1 results
+SAMPLE_RATE=0.5        # Placeholder: update based on experiment 1 results
 ALPHA=0.1
-SAVE_DIR="./results/change_distance_result_${ALPHA}_${TOTAL_PAIR}"
+SAVE_DIR="./results/change_distance_result_${ALPHA}_${TOTAL_PAIR}_chsh"
 
 # Function to run the simulation with a specific distance
 run_simulation() {
