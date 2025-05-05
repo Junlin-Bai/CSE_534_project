@@ -4,7 +4,7 @@
 # Usage: ./run_sim_concurrent.sh
 
 # Base parameters
-TOTAL_PAIR=50000
+TOTAL_PAIR=100000
 RUNS=1
 CHANNEL_RATE=8000
 DISTANCE=1
@@ -20,7 +20,7 @@ run_simulation() {
 }
 
 # Run simulations concurrently with sample rates from 0.1 to 0.7
-for rate in 0.1 0.2 0.3 0.4 0.5 0.6; do
+for rate in 0.01 0.02 0.03 0.04; do
     run_simulation $rate &
 done
 

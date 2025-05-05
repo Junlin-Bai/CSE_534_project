@@ -2,18 +2,18 @@
 r"""
 Extended plotting script: GHZ **and** matching CHSH-based estimates
 ===========================================================
-This keeps the original API and variable names while adding:
+* **process_chsh_results** – scans sister folders with suffix `_chsh`, extracts Run 1 `s_value`
+  and computes lower/upper CHSH‐based fidelity bounds.
+* **plot_figure** – overlays Actual vs. GHZ‐protocol Estimated Fidelity (and CHSH bounds when available).
+  For **Change Depolar Rate**, discards any rates ≤ 2000 Hz and only plots starting at 4000 Hz.
+* **plot_error_rate_triplet** – computes and plots three error‐rate curves **in percent**:
+    - GHZ‐protocol Error Rate = 100 × (GHZ_est − Actual) / Actual
+    - CHSH‐based Lower Bound Error Rate = 100 × (CHSH_low − Actual) / Actual
+    - CHSH‐based Upper Bound Error Rate = 100 × (CHSH_up − Actual) / Actual
+  It draws a horizontal zero‐line in solid blue and matches each curve’s color to the corresponding fidelity curve.
+  For **Change Sample Size**, the x‐axis ticks and labels are set to 5k, 10k, 15k, 20k, 25k, 30k.
 
-* **process_chsh_results** – scans sister folders with suffix `_chsh`, extracts Run 1 `s_value` and computes lower/upper CHSH‐based fidelity bounds.
-* **plot_figure** – overlays Actual vs. GHZ-protocol Estimated Fidelity (and CHSH bounds when available). For **Change Depolar Rate**, discards any rates ≤ 2000 Hz and only plots starting at 4000 Hz.
-* **plot_error_rate_triplet** – computes and plots three error‐rate curves:
-    - GHZ-protocol Error Rate = (GHZ_est − Actual) / Actual
-    - CHSH-based Lower Bound Error Rate = (CHSH_low − Actual) / Actual
-    - CHSH-based Upper Bound Error Rate = (CHSH_up − Actual) / Actual
-  It draws a horizontal zero-line in solid blue and matches each curve’s color to the corresponding fidelity curve.
-  For **Change Sample Size**, the x-axis ticks and labels are set to 5k, 10k, 15k, 20k, 25k, 30k to match the fidelity plots.
-
-Six figures in total (three fidelity + three error-rate) are saved under `./figures`.
+Six figures in total (three fidelity + three error‐rate) are saved under `./figures`.
 """
 
 import json
@@ -142,7 +142,7 @@ def plot_lines(xs: Sequence[Sequence[float]],
     plt.close()
 
 # --------------------------------------------------------------------
-# Error-rate plotting helper (three curves) with solid blue zero-line
+# Error‐rate plotting helper (three curves) with solid blue zero‐line
 # --------------------------------------------------------------------
 def plot_error_rate_triplet(factors: List[float],
                             actual: List[float],
@@ -153,50 +153,49 @@ def plot_error_rate_triplet(factors: List[float],
                             x_label: str,
                             save_dir: str = "./figures"):
     """
-    Compute and plot three error-rate curves:
-      - GHZ-protocol Error Rate
-      - CHSH-based Lower Bound Error Rate
-      - CHSH-based Upper Bound Error Rate
-    Draws a horizontal zero-line in solid blue (same as Actual Fidelity)
-    and matches each curve’s color to the fidelity plot.
-    For Change Sample Size, uses 5k–30k x-axis labels.
+    Compute and plot three error‐rate curves in percent:
+      - GHZ‐protocol Error Rate (%) = 100*(GHZ_est − Actual)/Actual
+      - CHSH‐based Lower Bound Error Rate (%) = 100*(CHSH_low − Actual)/Actual
+      - CHSH‐based Upper Bound Error Rate (%) = 100*(CHSH_up − Actual)/Actual
+    Draws a horizontal zero‐line in solid blue and matches each curve’s color.
+    For Change Sample Size, uses 5k–30k x‐axis labels.
     """
     os.makedirs(save_dir, exist_ok=True)
 
-    # compute error-rates
-    err_ghz = [(e - a) / a for a, e in zip(actual, ghz_est)]
-    err_lo  = [(l - a) / a for a, l in zip(actual, chsh_low)]
-    err_hi  = [(u - a) / a for a, u in zip(actual, chsh_up)]
+    # compute error‐rates in percent
+    err_ghz = [100 * (e - a) / a for a, e in zip(actual, ghz_est)]
+    err_lo  = [100 * (l - a) / a for a, l in zip(actual, chsh_low)]
+    err_hi  = [100 * (u - a) / a for a, u in zip(actual, chsh_up)]
 
     # get default color cycle
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
     fig, ax = plt.subplots()
-    # zero reference line as solid blue (colors[0])
+    # zero reference line
     ax.axhline(0, linestyle='-', linewidth=1, color=colors[0])
 
-    # plot with matching colors
-    ax.plot(factors, err_ghz, label="GHZ-protocol Error Rate",
+    # plot percentage curves
+    ax.plot(factors, err_ghz, label="GHZ‐protocol Error Rate (%)",
             marker="o", color=colors[1])
-    ax.plot(factors, err_lo,  label="CHSH-based Lower Bound Error Rate",
+    ax.plot(factors, err_lo,  label="CHSH Low Bound Error Rate (%)",
             marker="o", color=colors[2])
-    ax.plot(factors, err_hi,  label="CHSH-based Upper Bound Error Rate",
+    ax.plot(factors, err_hi,  label="CHSH High Bound Error Rate (%)",
             marker="o", color=colors[3])
 
-    # for sample size error-rate, match fidelity x-axis labels
+    # for sample size error‐rate, match fidelity x‐axis labels
     if title == "Change Sample Size":
         ax.set_xticks([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
         ax.set_xticklabels(["5k", "10k", "15k", "20k", "25k", "30k"])
 
     ax.set_xlabel(x_label)
-    ax.set_ylabel("Error Rate")
+    ax.set_ylabel("Error Rate (%)")
     ax.legend(fontsize=10)
     plt.tight_layout()
     plt.savefig(Path(save_dir) / f"{title}_error.png")
     plt.close()
 
 # --------------------------------------------------------------------
-# High-level fidelity routine
+# High‐level fidelity routine
 # --------------------------------------------------------------------
 def plot_figure(folder: str,
                 re_expr: str,
@@ -207,7 +206,7 @@ def plot_figure(folder: str,
     factors, second_vals, actual, est = process_results(folder, re_expr)
     low, up = process_chsh_results(f"{folder}_chsh", re_expr, factors)
 
-    # for Change Depolar Rate: drop ≤ 2000 Hz, keep ≥ 4000 Hz
+    # for Change Depolar Rate: drop ≤2000Hz, keep ≥4000Hz
     if title == "Change Depolar Rate":
         idx = [i for i, f in enumerate(factors) if f >= 4000]
         factors = [factors[i] for i in idx]
@@ -219,10 +218,10 @@ def plot_figure(folder: str,
             second_vals = [second_vals[i] for i in idx]
 
     ys      = [actual, est]
-    legends = ["Actual Fidelity", "GHZ-protocol Estimated Fidelity"]
+    legends = ["Actual Fidelity", "GHZ‐protocol Estimated Fidelity"]
     if not np.all(np.isnan(low)):
         ys      += [low, up]
-        legends += ["CHSH-based Lower Bound", "CHSH-based Upper Bound"]
+        legends += ["CHSH‐based Lower Bound", "CHSH‐based Upper Bound"]
     annotation = second_vals if second_vals is not None else None
 
     if title == "Change Sample Size":
@@ -256,7 +255,7 @@ def plot_all_twin(folder1: str,
     plot_figure(folder1, re_expr, title, x_label, save_dir)
     plot_figure(folder2, re_expr, title, x_label, save_dir)
 
-    # error-rate plot
+    # error‐rate plot
     factors, _, actual, est = process_results(folder1, re_expr)
     low, up = process_chsh_results(f"{folder1}_chsh", re_expr, factors)
     if title == "Change Depolar Rate":
