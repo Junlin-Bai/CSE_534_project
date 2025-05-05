@@ -4,16 +4,14 @@ Extended plotting script: GHZ **and** matching CHSH-based estimates
 ===========================================================
 This keeps the original API and variable names while adding:
 
-* **process_chsh_results** – scans sister folders with suffix `_chsh`, extracts Run 1 `s_value` and computes lower/upper CHSH‐based fidelity bounds:
+* **process_chsh_results** – scans sister folders with suffix `_chsh`, extracts Run 1 `s_value` and computes lower/upper CHSH‐based fidelity bounds.
+* **plot_figure** – overlays Actual vs. GHZ-protocol Estimated Fidelity (and CHSH bounds when available). For **Change Depolar Rate**, discards any rates ≤ 2000 Hz and only plots starting at 4000 Hz.
+* **plot_error_rate** – computes three error‐rate curves:
+  - GHZ‐protocol Error Rate = (GHZ_est − Actual) / Actual
+  - CHSH‐based Lower Bound Error Rate = (CHSH_low − Actual) / Actual
+  - CHSH‐based Upper Bound Error Rate = (CHSH_up − Actual) / Actual
 
-  .. math::
-
-     F_{\text{lower}} = \frac{s}{2\sqrt{2}}, \qquad
-     F_{\text{upper}} = \frac{s}{4\sqrt{2}} + 0.5
-
-* **plot_figure** now overlays these bounds on the existing *Actual* vs. *GHZ‑protocol Estimated Fidelity* plot. If the companion folder is missing, the script shows only GHZ curves.
-
-All other functions, filenames, and CLI examples remain unchanged.
+Six figures in total (three fidelity and three error‐rate) are saved under `./figures`.
 """
 
 import json
@@ -29,7 +27,7 @@ import numpy as np
 # --------------------------------------------------------------------
 # Matplotlib global style
 # --------------------------------------------------------------------
-WIDTH = 8.5  # increased from 7 to widen figures and prevent label overlap
+WIDTH = 8.5
 HEIGHT = WIDTH * (np.sqrt(5) - 1.0) / 2.5
 plt.rcParams.update({
     "figure.figsize": (WIDTH, HEIGHT),
@@ -40,14 +38,10 @@ plt.rcParams.update({
 # --------------------------------------------------------------------
 # GHZ result processing (original behaviour)
 # --------------------------------------------------------------------
-
 def process_results(file_path: str, re_expressions: str) -> Tuple[
-    List[float],               # primary x‑axis factor values (sorted)
-    Optional[List[float]],     # optional secondary factor values
-    List[float],               # actual fidelities (mean)
-    List[float],               # estimated fidelities (2·p_ghz−1)
+    List[float], Optional[List[float]], List[float], List[float]
 ]:
-    """Parse GHZ JSON files in a folder (single‑run datasets)."""
+    """Parse GHZ JSON files in a folder."""
     factors, second_vals_dict = [], {}
     actual_dict, est_dict = {}, {}
     multi_factor = False
@@ -65,24 +59,25 @@ def process_results(file_path: str, re_expressions: str) -> Tuple[
             with open(Path(root, fname), "r", encoding="utf-8") as f:
                 data = json.load(f)
             actual = np.mean(list(data["actual_fid"].values())[0])
-            p_ghz = list(data["p_ghz"].values())[0]
-            est = 2 * p_ghz - 1
+            p_ghz  = list(data["p_ghz"].values())[0]
+            est    = 2 * p_ghz - 1
             actual_dict[factor] = actual
-            est_dict[factor] = est
+            est_dict[factor]    = est
+
     if multi_factor:
-        factors = sorted(second_vals_dict.keys())
+        factors     = sorted(second_vals_dict.keys())
         second_vals = [second_vals_dict[x] for x in factors]
     else:
-        factors = sorted(factors)
+        factors     = sorted(factors)
         second_vals = None
+
     actual = [actual_dict[x] for x in factors]
-    est = [est_dict[x] for x in factors]
+    est    = [est_dict[x]    for x in factors]
     return factors, second_vals, actual, est
 
 # --------------------------------------------------------------------
-# CHSH companion processing (new)
+# CHSH companion processing
 # --------------------------------------------------------------------
-
 def process_chsh_results(folder_chsh: str, re_expressions: str,
                          factors_order: List[float]) -> Tuple[List[float], List[float]]:
     """Compute CHSH-based lower/upper fidelity bounds aligned to factors_order."""
@@ -98,17 +93,17 @@ def process_chsh_results(folder_chsh: str, re_expressions: str,
             factor = float(m.group(1))
             with open(Path(root, fname), "r", encoding="utf-8") as f:
                 data = json.load(f)
-            s_val = list(data["s_value"].values())[0]  # Run‑1 only
-            low_d[factor] = s_val / (2 * sqrt(2))
-            up_d[factor] = s_val / (4 * sqrt(2)) + 0.5
+            s = list(data["s_value"].values())[0]
+            low_d[factor] = s / (2 * sqrt(2))
+            up_d[factor]  = s / (4 * sqrt(2)) + 0.5
+
     low = [low_d.get(x, np.nan) for x in factors_order]
-    up = [up_d.get(x, np.nan) for x in factors_order]
+    up  = [up_d.get(x, np.nan)  for x in factors_order]
     return low, up
 
 # --------------------------------------------------------------------
-# Generic line‑plot helper
+# Generic line-plot helper
 # --------------------------------------------------------------------
-
 def plot_lines(xs: Sequence[Sequence[float]],
                ys: Sequence[Sequence[float]],
                legends: Sequence[str],
@@ -118,7 +113,7 @@ def plot_lines(xs: Sequence[Sequence[float]],
                save_dir: str = "./figures",
                annotation: Optional[Sequence[float]] = None,
                ncols: int = 1):
-    """Draw multiple lines with small‑font legends and annotations."""
+    """Draw multiple lines with markers, legends, and optional annotations."""
     os.makedirs(save_dir, exist_ok=True)
     fig, ax = plt.subplots()
     for x, y, leg in zip(xs, ys, legends):
@@ -127,7 +122,8 @@ def plot_lines(xs: Sequence[Sequence[float]],
             for i, (xi, yi) in enumerate(zip(x, y)):
                 if i < len(annotation):
                     ax.annotate(f"{annotation[i]}", (xi, yi),
-                                textcoords="offset points", xytext=(0, 5), ha="center", fontsize=8)
+                                textcoords="offset points", xytext=(0, 5),
+                                ha="center", fontsize=8)
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.legend(ncols=ncols, fontsize=10)
@@ -136,73 +132,138 @@ def plot_lines(xs: Sequence[Sequence[float]],
     plt.close()
 
 # --------------------------------------------------------------------
-# High‑level plotting routine with special Sample Size handling
+# Error-rate plotting helper (three curves)
 # --------------------------------------------------------------------
+def plot_error_rate_triplet(factors: List[float],
+                            actual: List[float],
+                            ghz_est: List[float],
+                            chsh_low: List[float],
+                            chsh_up: List[float],
+                            title: str,
+                            x_label: str,
+                            save_dir: str = "./figures"):
+    """
+    Compute three error‐rate curves:
+      - GHZ‐protocol: (ghz_est − actual) / actual
+      - CHSH‐lower:   (chsh_low − actual) / actual
+      - CHSH‐upper:   (chsh_up − actual) / actual
+    and plot them together.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    err_ghz = [(e - a) / a for a, e in zip(actual, ghz_est)]
+    err_lo  = [(l - a) / a for a, l in zip(actual, chsh_low)]
+    err_hi  = [(u - a) / a for a, u in zip(actual, chsh_up)]
 
+    legends = ["GHZ-protocol Error Rate",
+               "CHSH-based Lower Bound Error Rate",
+               "CHSH-based Upper Bound Error Rate"]
+    ys = [err_ghz, err_lo, err_hi]
+
+    fig, ax = plt.subplots()
+    for y, leg in zip(ys, legends):
+        ax.plot(factors, y, label=leg, marker="o")
+    ax.set_xlabel(x_label)
+    ax.set_ylabel("Error Rate")
+    ax.legend(fontsize=10)
+    plt.tight_layout()
+    plt.savefig(Path(save_dir) / f"{title}_error.png")
+    plt.close()
+
+# --------------------------------------------------------------------
+# High-level fidelity routine
+# --------------------------------------------------------------------
 def plot_figure(folder: str,
                 re_expr: str,
                 title: str,
                 x_label: str,
                 save_dir: str = "./figures"):
-    """Plot GHZ and CHSH-based curves; special x‑axis for sample size."""
+    """Plot fidelity curves; sample size and depolar rate get custom handling."""
     factors, second_vals, actual, est = process_results(folder, re_expr)
     low, up = process_chsh_results(f"{folder}_chsh", re_expr, factors)
-    ys = [actual, est]
+
+    # filter out ≤2000 Hz and start at 4000 Hz for depolar-rate plots
+    if title == "Change Depolar Rate":
+        idx = [i for i, f in enumerate(factors) if f >= 4000]
+        factors    = [factors[i]    for i in idx]
+        actual     = [actual[i]     for i in idx]
+        est        = [est[i]        for i in idx]
+        low        = [low[i]        for i in idx]
+        up         = [up[i]         for i in idx]
+        if second_vals is not None:
+            second_vals = [second_vals[i] for i in idx]
+
+    ys      = [actual, est]
     legends = ["Actual Fidelity", "GHZ-protocol Estimated Fidelity"]
     if not np.all(np.isnan(low)):
-        ys += [low, up]
+        ys      += [low, up]
         legends += ["CHSH-based Lower Bound", "CHSH-based Upper Bound"]
+
     annotation = second_vals if second_vals is not None else None
+
     if title == "Change Sample Size":
-        # Custom x‑axis labels
+        # custom x-axis labels for sample size
         fig, ax = plt.subplots()
-        for x, y, leg in zip([factors] * len(ys), ys, legends):
+        for x, y, leg in zip([factors]*len(ys), ys, legends):
             ax.plot(x, y, label=leg, marker="o")
         ax.set_xlabel("Sample Number")
         ax.set_ylabel("Fidelity")
-        ax.set_xticks([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
-        ax.set_xticklabels(["5k", "10k", "15k", "20k", "25k", "30k"])
+        ax.set_xticks([0.1,0.2,0.3,0.4,0.5,0.6])
+        ax.set_xticklabels(["5k","10k","15k","20k","25k","30k"])
         ax.legend(ncols=2, fontsize=10)
         plt.tight_layout()
         plt.savefig(Path(save_dir) / f"{title}_fid.png")
         plt.close()
     else:
-        plot_lines([factors] * len(ys), ys, legends,
+        plot_lines([factors]*len(ys), ys, legends,
                    f"{title}_fid", x_label, "Fidelity",
                    save_dir=save_dir, annotation=annotation, ncols=2)
 
 # --------------------------------------------------------------------
-# Convenience wrapper for twin folders
+# Wrapper for twin folders: fidelity + error
 # --------------------------------------------------------------------
-
-def plot_figure_twin(folder1: str, folder2: str,
-                      re_expr: str, title: str,
-                      x_label: str, save_dir: str = "./figures"):
+def plot_all_twin(folder1: str, folder2: str,
+                  re_expr: str, title: str,
+                  x_label: str, save_dir: str = "./figures"):
+    # Fidelity plots
     plot_figure(folder1, re_expr, title, x_label, save_dir)
     plot_figure(folder2, re_expr, title, x_label, save_dir)
+    # Error‐rate plots (they use identical data)
+    # process once to get arrays
+    factors, _, actual, est = process_results(folder1, re_expr)
+    low, up = process_chsh_results(f"{folder1}_chsh", re_expr, factors)
+    # apply depolar-rate filter if needed
+    if title == "Change Depolar Rate":
+        idx = [i for i, f in enumerate(factors) if f >= 4000]
+        factors = [factors[i] for i in idx]
+        actual  = [actual[i]  for i in idx]
+        est     = [est[i]     for i in idx]
+        low     = [low[i]     for i in idx]
+        up      = [up[i]      for i in idx]
+    plot_error_rate_triplet(factors, actual, est, low, up,
+                            title, x_label, save_dir)
 
 # --------------------------------------------------------------------
-# CLI invocation updated for new folders
+# CLI invocation
 # --------------------------------------------------------------------
 if __name__ == "__main__":
-    # Depolarization rate sweep
-    plot_figure_twin(
+    # 1. Depolarization rate (fidelity + error)
+    plot_all_twin(
         "./change_channel_rate_result_0.1_60000",
         "./change_channel_rate_result_0.1_60000",
         r"channel_([\d\.]+)_",
         "Change Depolar Rate",
         r"$R_c$ (Hz)"
     )
-    # Node distance sweep
-    plot_figure_twin(
+    # 2. Node distance (fidelity + error)
+    plot_all_twin(
         "./change_distance_result_0.1_60000",
         "./change_distance_result_0.1_60000",
         r"distance_([\d\.]+)_",
         "Change Node Distance",
         r"$L$ (Km)"
     )
-    # Sample size sweep
-    plot_figure_twin(
+    # 3. Sample size (fidelity + error)
+    plot_all_twin(
         "./change_sample_size_result_0.1_50000",
         "./change_sample_size_result_0.1_50000",
         r"sample_([\d\.]+)_alpha",
