@@ -6,12 +6,13 @@ This keeps the original API and variable names while adding:
 
 * **process_chsh_results** – scans sister folders with suffix `_chsh`, extracts Run 1 `s_value` and computes lower/upper CHSH‐based fidelity bounds.
 * **plot_figure** – overlays Actual vs. GHZ-protocol Estimated Fidelity (and CHSH bounds when available). For **Change Depolar Rate**, discards any rates ≤ 2000 Hz and only plots starting at 4000 Hz.
-* **plot_error_rate** – computes three error‐rate curves:
-  - GHZ‐protocol Error Rate = (GHZ_est − Actual) / Actual
-  - CHSH‐based Lower Bound Error Rate = (CHSH_low − Actual) / Actual
-  - CHSH‐based Upper Bound Error Rate = (CHSH_up − Actual) / Actual
+* **plot_error_rate_triplet** – computes and plots three error‐rate curves:
+    - GHZ‐protocol Error Rate = (GHZ_est − Actual) / Actual
+    - CHSH‐based Lower Bound Error Rate = (CHSH_low − Actual) / Actual
+    - CHSH‐based Upper Bound Error Rate = (CHSH_up − Actual) / Actual
+  It also draws a horizontal zero‐line and matches each curve’s color to the corresponding fidelity curve.
 
-Six figures in total (three fidelity and three error‐rate) are saved under `./figures`.
+Six figures in total (three fidelity + three error‐rate) are saved under `./figures`.
 """
 
 import json
@@ -19,7 +20,7 @@ import os
 import re
 from math import sqrt
 from pathlib import Path
-from typing import List, Sequence, Tuple, Optional
+from typing import List, Optional, Sequence, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -38,13 +39,16 @@ plt.rcParams.update({
 # --------------------------------------------------------------------
 # GHZ result processing (original behaviour)
 # --------------------------------------------------------------------
-def process_results(file_path: str, re_expressions: str) -> Tuple[
-    List[float], Optional[List[float]], List[float], List[float]
-]:
-    """Parse GHZ JSON files in a folder."""
-    factors, second_vals_dict = [], {}
-    actual_dict, est_dict = {}, {}
+def process_results(file_path: str,
+                    re_expressions: str
+                   ) -> Tuple[List[float], Optional[List[float]], List[float], List[float]]:
+    """Parse GHZ JSON files in a folder (single-run datasets)."""
+    factors: List[float] = []
+    second_vals_dict: dict = {}
+    actual_dict: dict = {}
+    est_dict: dict = {}
     multi_factor = False
+
     for root, _, files in os.walk(file_path):
         for fname in files:
             m = re.search(re_expressions, fname)
@@ -56,19 +60,21 @@ def process_results(file_path: str, re_expressions: str) -> Tuple[
                 multi_factor = True
             else:
                 factors.append(factor)
+
             with open(Path(root, fname), "r", encoding="utf-8") as f:
                 data = json.load(f)
             actual = np.mean(list(data["actual_fid"].values())[0])
             p_ghz  = list(data["p_ghz"].values())[0]
             est    = 2 * p_ghz - 1
+
             actual_dict[factor] = actual
-            est_dict[factor]    = est
+            est_dict[factor] = est
 
     if multi_factor:
-        factors     = sorted(second_vals_dict.keys())
+        factors = sorted(second_vals_dict.keys())
         second_vals = [second_vals_dict[x] for x in factors]
     else:
-        factors     = sorted(factors)
+        factors = sorted(factors)
         second_vals = None
 
     actual = [actual_dict[x] for x in factors]
@@ -78,13 +84,16 @@ def process_results(file_path: str, re_expressions: str) -> Tuple[
 # --------------------------------------------------------------------
 # CHSH companion processing
 # --------------------------------------------------------------------
-def process_chsh_results(folder_chsh: str, re_expressions: str,
-                         factors_order: List[float]) -> Tuple[List[float], List[float]]:
+def process_chsh_results(folder_chsh: str,
+                         re_expressions: str,
+                         factors_order: List[float]
+                        ) -> Tuple[List[float], List[float]]:
     """Compute CHSH-based lower/upper fidelity bounds aligned to factors_order."""
     low_d, up_d = {}, {}
     if not os.path.isdir(folder_chsh):
         nan = [np.nan] * len(factors_order)
         return nan, nan
+
     for root, _, files in os.walk(folder_chsh):
         for fname in files:
             m = re.search(re_expressions, fname)
@@ -132,7 +141,7 @@ def plot_lines(xs: Sequence[Sequence[float]],
     plt.close()
 
 # --------------------------------------------------------------------
-# Error-rate plotting helper (three curves)
+# Error-rate plotting helper (three curves) with zero‐line & matched colors
 # --------------------------------------------------------------------
 def plot_error_rate_triplet(factors: List[float],
                             actual: List[float],
@@ -143,25 +152,34 @@ def plot_error_rate_triplet(factors: List[float],
                             x_label: str,
                             save_dir: str = "./figures"):
     """
-    Compute three error‐rate curves:
-      - GHZ‐protocol: (ghz_est − actual) / actual
-      - CHSH‐lower:   (chsh_low − actual) / actual
-      - CHSH‐upper:   (chsh_up − actual) / actual
-    and plot them together.
+    Compute and plot three error‐rate curves:
+      - GHZ‐protocol Error Rate
+      - CHSH‐based Lower Bound Error Rate
+      - CHSH‐based Upper Bound Error Rate
+    Draws a horizontal zero‐line and matches colors to the fidelity plot.
     """
     os.makedirs(save_dir, exist_ok=True)
+
+    # compute error‐rates
     err_ghz = [(e - a) / a for a, e in zip(actual, ghz_est)]
     err_lo  = [(l - a) / a for a, l in zip(actual, chsh_low)]
     err_hi  = [(u - a) / a for a, u in zip(actual, chsh_up)]
 
-    legends = ["GHZ-protocol Error Rate",
-               "CHSH-based Lower Bound Error Rate",
-               "CHSH-based Upper Bound Error Rate"]
-    ys = [err_ghz, err_lo, err_hi]
+    # get default color cycle
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
     fig, ax = plt.subplots()
-    for y, leg in zip(ys, legends):
-        ax.plot(factors, y, label=leg, marker="o")
+    # zero reference line
+    ax.axhline(0, linestyle='--', linewidth=1, color='gray')
+
+    # plot with matching colors:
+    ax.plot(factors, err_ghz, label="GHZ-protocol Error Rate",
+            marker="o", color=colors[1])
+    ax.plot(factors, err_lo,  label="CHSH-based Lower Bound Error Rate",
+            marker="o", color=colors[2])
+    ax.plot(factors, err_hi,  label="CHSH-based Upper Bound Error Rate",
+            marker="o", color=colors[3])
+
     ax.set_xlabel(x_label)
     ax.set_ylabel("Error Rate")
     ax.legend(fontsize=10)
@@ -177,11 +195,11 @@ def plot_figure(folder: str,
                 title: str,
                 x_label: str,
                 save_dir: str = "./figures"):
-    """Plot fidelity curves; sample size and depolar rate get custom handling."""
+    """Plot fidelity curves; custom handling for sample size & depolar rate."""
     factors, second_vals, actual, est = process_results(folder, re_expr)
     low, up = process_chsh_results(f"{folder}_chsh", re_expr, factors)
 
-    # filter out ≤2000 Hz and start at 4000 Hz for depolar-rate plots
+    # for Change Depolar Rate: drop ≤2000 Hz, keep ≥4000 Hz
     if title == "Change Depolar Rate":
         idx = [i for i, f in enumerate(factors) if f >= 4000]
         factors    = [factors[i]    for i in idx]
@@ -197,11 +215,10 @@ def plot_figure(folder: str,
     if not np.all(np.isnan(low)):
         ys      += [low, up]
         legends += ["CHSH-based Lower Bound", "CHSH-based Upper Bound"]
-
     annotation = second_vals if second_vals is not None else None
 
     if title == "Change Sample Size":
-        # custom x-axis labels for sample size
+        # custom sample-size x-axis
         fig, ax = plt.subplots()
         for x, y, leg in zip([factors]*len(ys), ys, legends):
             ax.plot(x, y, label=leg, marker="o")
@@ -219,19 +236,21 @@ def plot_figure(folder: str,
                    save_dir=save_dir, annotation=annotation, ncols=2)
 
 # --------------------------------------------------------------------
-# Wrapper for twin folders: fidelity + error
+# Wrapper: fidelity + error for twin folders
 # --------------------------------------------------------------------
-def plot_all_twin(folder1: str, folder2: str,
-                  re_expr: str, title: str,
-                  x_label: str, save_dir: str = "./figures"):
-    # Fidelity plots
+def plot_all_twin(folder1: str,
+                  folder2: str,
+                  re_expr: str,
+                  title: str,
+                  x_label: str,
+                  save_dir: str = "./figures"):
+    # fidelity plots
     plot_figure(folder1, re_expr, title, x_label, save_dir)
     plot_figure(folder2, re_expr, title, x_label, save_dir)
-    # Error‐rate plots (they use identical data)
-    # process once to get arrays
+
+    # error‐rate plot (once)
     factors, _, actual, est = process_results(folder1, re_expr)
     low, up = process_chsh_results(f"{folder1}_chsh", re_expr, factors)
-    # apply depolar-rate filter if needed
     if title == "Change Depolar Rate":
         idx = [i for i, f in enumerate(factors) if f >= 4000]
         factors = [factors[i] for i in idx]
@@ -239,6 +258,7 @@ def plot_all_twin(folder1: str, folder2: str,
         est     = [est[i]     for i in idx]
         low     = [low[i]     for i in idx]
         up      = [up[i]      for i in idx]
+
     plot_error_rate_triplet(factors, actual, est, low, up,
                             title, x_label, save_dir)
 
